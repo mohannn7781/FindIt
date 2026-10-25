@@ -1,52 +1,52 @@
 # Campus FindIt
 
-A local-first campus lost-and-found prototype. It uses browser-native JavaScript and IndexedDB, with no hosted backend, paid API, or authentication provider. The campus layout and landmarks are illustrative and are not a real institution's map.
+A local-first campus lost-and-found prototype built with browser-native JavaScript, ES modules, and IndexedDB. The campus map is illustrative, not an official map.
 
-## Run it
+## Run and verify
 
-Requires Node.js 18 or newer.
+Requires Node.js 18 or newer. No package installation is needed.
 
-```powershell
+~~~powershell
 npm run dev
-```
-
-Open <http://localhost:4173>. No package installation is needed because the app and its development server use Node's built-in modules and browser APIs only.
-
-```powershell
 npm test
 npm run build
-```
+~~~
 
-The static build is written to `dist/` and can be served from any static file server.
+The dev server uses port 4173 by default. Open <http://localhost:4173>. Set the PORT environment variable to an available port if that port is already occupied. The static build is written to dist/.
 
-## What works
+## Phase 1 workflows
 
-- Home dashboard with live counts, recent public reports, and rule-based possible matches.
-- Lost and found report forms with validation, optional image upload (JPG/PNG/WebP, 3 MB limit), and a shared landmark directory.
-- Item search and filters using public report fields.
-- Four campus-map views: item markers, calculated hotspots, frequently reported locations, and a landmark explorer. The SVG map can be zoomed and reset; the adjacent landmark directory provides a text selection alternative.
-- Central classification rules for standard, valuable/sensitive, and identity-bearing items.
-- Private ownership claims, staff review, official custody, three-step handover checklist, and confirmed recovery.
-- My Activity, local notifications, audit history, duplicate suggestions, weekly/monthly trends, recovery timing, location/category analytics, and versioned JSON export/import.
-- Student/staff role switcher for demonstrating review actions.
+- Lost and found reports require category, item type, date, public description, and an exact campus landmark. Exact landmark, added location detail, and ownership clues are kept in the local record and shown only to the report owner or demo staff.
+- Found reports start as under review. The demo staff role must approve one before public search, matching, or map views can discover it. Approval changes the report to active.
+- Optional images accept JPEG, PNG, or WebP up to 3 MiB. Selection shows a preview; file type, size, reading, and decoding are checked again at submission. The image data URL is stored in the report in IndexedDB.
+- Public report projection is centralized in src/domain.js. It replaces exact landmarks with West, Central, or East campus zones. Valuable and identity-bearing items publish only generic details; their image, precise area, unique type, and color remain restricted.
+- The map supports report markers, the campus explorer, location views, and lost, found, or combined hotspots. Hotspots use broad zones and require at least three qualifying unique reports in the selected seven-day or 30-day window. These aggregates describe report frequency only and are not safety or crime findings.
+- A claimant can submit one active claim for an approved found report, provide private explanation and evidence, and use a local conversation associated with that claim and report. Staff can request more information, approve for an in-person check, reject, or route a claim for human review.
+- A staff-approved claim can enter official custody. Staff must save all three checklist items before completing handover. The report, claim, custody record, audit event, and participant notices are written in one IndexedDB transaction. Completed handovers are read-only.
+- My Activity, notifications, admin review, and Insights use the relevant local role or centralized public projection. Local demo role switching moves between Demo claimant, Demo finder, and Demo staff.
 
-## Storage and privacy boundaries
+Claim statuses reuse the existing values: Submitted, Under review, More information required, Disputed, Approved for in-person verification, Handover pending, Rejected, and Recovered.
 
-Reports, claims, custody records, notifications, and audit events are stored in versioned IndexedDB object stores. Uploaded image data is stored with its report. Records persist in the same browser profile after refresh and restart. There are no seeded item reports, claims, or recovery statistics. Landmarks and categories are configuration only.
+The normal transitions are:
 
-Data does not synchronize between students or devices. The role switcher and client-side privacy filters demonstrate intended workflow only; anyone with access to the browser profile can inspect local database data. This prototype does not provide real authentication, secure authorization, or verified identity checks. Avoid storing passwords, payment details, access codes, or unredacted identity document photos.
+~~~text
+Submitted -> Under review | More information required | Approved for in-person verification | Disputed | Rejected
+Under review -> More information required | Approved for in-person verification | Disputed | Rejected
+More information required -> Under review | Approved for in-person verification | Disputed | Rejected
+Disputed -> Under review | Rejected
+Approved for in-person verification -> Handover pending | Disputed | Rejected
+Handover pending -> Recovered (only after active custody and all three checks)
+Rejected / Recovered -> terminal
+~~~
 
-## Demo walkthrough
+## Storage and security limits
 
-1. As the student role, create a lost report and a found report. The found report waits for review.
-2. Switch to the staff role from the lower sidebar and approve the found report.
-3. Return to Find Items, open the found report, and submit a claim as the student role.
-4. Switch to staff and review the claim; approve it for an in-person check.
-5. In Recovery Centre, accept the item into custody. Check all three handover items and complete handover.
-6. Review My Activity, notifications, map markers, and Insights & Trends. Refresh; the records remain in the same browser profile.
+The app uses IndexedDB database campus-findit. Schema version 2 adds the messages object store without deleting prior stores or records. Version 1 JSON exports remain importable; version 2 exports include messages. Report, claim, review, custody, message, and handover bundles use IndexedDB read-write transactions. Browser profile storage is local and persists across refreshes.
 
-Claims are shown only for approved found reports. Staff approval for in-person verification does not itself mark an item recovered. The report becomes recovered only after staff completes all handover checklist fields.
+This is a single-browser prototype. Messages do not travel to another device or browser profile. The three demo identities and client-side access checks are for workflow demonstration only; they are not secure authentication or authorization. A person with access to the browser profile can inspect or alter local records. There is no trusted server, cross-device synchronization, secure end-to-end chat, identity verification, photo moderation, or conflict resolution service. Do not store credentials, payment details, access codes, or unredacted identity documents. A real campus deployment needs a trusted backend and formal privacy/security review.
+
+No reports or accounts are seeded. The repository uses in-memory fallback only when IndexedDB is absent, such as the Node unit-test process; this fallback is not a persistence guarantee.
 
 ## Checks
 
-`npm test` runs Node's built-in test runner against privacy classification, public projections, matching, duplicate detection, analytics, and repository persistence/export behavior. The repository falls back to in-memory storage only in environments without IndexedDB (such as the Node unit test process); the browser uses IndexedDB.
+npm test runs the existing Node test suite plus workflow, projection, hotspot, image-validation, atomic-write, message-safety, and repository tests. It does not by itself prove browser IndexedDB behavior. npm run build creates a static copy of index.html, styles.css, and src/ in dist/.
