@@ -50,3 +50,11 @@ No reports or accounts are seeded. The repository uses in-memory fallback only w
 ## Checks
 
 npm test runs the existing Node test suite plus workflow, projection, hotspot, image-validation, atomic-write, message-safety, and repository tests. It does not by itself prove browser IndexedDB behavior. npm run build creates a static copy of index.html, styles.css, and src/ in dist/.
+
+## Deploy to Vercel
+
+This is a static vanilla JavaScript application. The Vercel configuration builds the existing static site with npm run build and serves dist/. In the Vercel project settings, use Framework Preset Other, Build Command npm run build, and Output Directory dist. No environment variables or backend services are required.
+
+The application uses hash navigation such as /#find. Browsers request the root document on refresh because URL fragments are not sent to the server, so no path rewrite is needed. The campus diagram is inline SVG rendered by the map view; it has no separate image asset to copy. The build includes index.html, styles.css, and all source modules.
+
+Deploying the files does not make application records shared. Reports, uploaded image data, claims, and messages use IndexedDB in the current browser profile. Each visitor has separate local data; there is no multi-user synchronization, shared chat, hosted database, or server-side authorization.
